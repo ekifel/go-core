@@ -8,21 +8,24 @@ type Index struct {
 	data map[string][]int
 }
 
-func (i *Index) New() {
-	i.data = make(map[string][]int)
+func New() *Index {
+	index := new(Index)
+	index.data = map[string][]int{}
+
+	return index
 }
 
-func (i *Index) Add(title string, j int) {
+func (ind *Index) Add(title string, j int) {
 	keys := strings.Split(strings.ToLower(title), " ")
 	for _, key := range keys {
-		if !i.indexExists(key, j) {
-			i.data[key] = append(i.data[key], j)
+		if !ind.indexExists(key, j) {
+			ind.data[key] = append(ind.data[key], j)
 		}
 	}
 }
 
-func (i *Index) Search(word string) []int {
-	return i.data[strings.ToLower(word)]
+func (ind *Index) Search(word string) []int {
+	return ind.data[strings.ToLower(word)]
 }
 
 // func (i *Index) Print() {
@@ -31,9 +34,9 @@ func (i *Index) Search(word string) []int {
 // 	}
 // }
 
-func (i *Index) indexExists(key string, j int) bool {
-	for _, d := range i.data[key] {
-		if d == j {
+func (ind *Index) indexExists(key string, id int) bool {
+	for _, d := range ind.data[key] {
+		if d == id {
 			return true
 		}
 	}

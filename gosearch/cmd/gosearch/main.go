@@ -25,8 +25,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	index := index.Index{}
-	index.New()
+	index := index.New()
 
 	for _, url := range urls {
 		data, err := s.Scan(url, depth)
