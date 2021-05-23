@@ -16,17 +16,16 @@ func main() {
 	urls := []string{"https://go.dev", "https://golang.org"}
 	var docs []crawler.Document
 
-	searchWord := flag.String("s", "", "Word for search")
+	word := flag.String("s", "", "Word for search")
 	flag.Parse()
 
-	if *searchWord == "" {
-		log.Println("You don't set any words to search. Please do it with -s flag")
-		os.Exit(0)
+	if *word == "" {
+		log.Println("Вы не указали слово для поиска. Сделайте это используя флаг -s")
+		os.Exit(1)
 	}
 
 	for _, url := range urls {
 		data, err := s.Scan(url, depth)
-
 		if err != nil {
 			log.Println(err)
 			continue
@@ -34,12 +33,12 @@ func main() {
 		docs = append(docs, data...)
 	}
 
-	if *searchWord != "" {
+	if *word != "" {
 		fmt.Println("Results:")
 
 		for _, d := range docs {
-			if strings.Contains(strings.ToLower(d.Title), strings.ToLower(*searchWord)) ||
-				strings.Contains(strings.ToLower(d.Body), strings.ToLower(*searchWord)) {
+			if strings.Contains(strings.ToLower(d.Title), strings.ToLower(*word)) ||
+				strings.Contains(strings.ToLower(d.Body), strings.ToLower(*word)) {
 				fmt.Println(d.URL, d.Title)
 			}
 		}
