@@ -1,18 +1,20 @@
 package main
 
 import (
+	"bufio"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"go-core/gosearch/pkg/crawler"
 	"go-core/gosearch/pkg/crawler/spider"
 	"go-core/gosearch/pkg/index"
+	"io"
 	"log"
 	"os"
 	"sort"
 )
 
 func main() {
-	s := spider.New()
 	depth := 2
 	urls := []string{"https://go.dev", "https://golang.org"}
 	var docs []crawler.Document
@@ -24,19 +26,22 @@ func main() {
 		log.Printf("Вы не указали слово для поиска. Сделайте это используя флаг -s\n")
 		os.Exit(1)
 	}
-
 	index := index.New()
 
-	for _, url := range urls {
-		data, err := s.Scan(url, depth)
+	ds := "./dataStorage.json"
+	if _, err := os.Stat("/path/to/whatever"); os.IsNotExist(err) {
+		docs = scanUrls(urls, depth, index)
+		err = writeToFile(ds, docs)
 		if err != nil {
 			log.Println(err)
-			continue
 		}
-		for _, doc := range data {
-			doc.ID = len(docs)
-			index.Add(doc.Title, doc.ID)
-			docs = append(docs, doc)
+	} else {
+		docs, err = loadFromFile(ds)
+		if err != nil {
+			log.Fatal(err)
+		}
+		for _, doc := range docs {
+			index.Add(doc.Title, len(docs))
 		}
 	}
 
@@ -53,4 +58,74 @@ func main() {
 			}
 		}
 	}
+}
+
+func scanUrls(urls []string, depth int, index *index.Index) []crawler.Document {
+	s := spider.New()
+
+	var docs []crawler.Document
+	for _, url := range urls {
+		data, err := s.Scan(url, depth)
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+		for _, doc := range data {
+			index.Add(doc.Title, len(docs))
+			docs = append(docs, doc)
+		}
+	}
+
+	return docs
+}
+
+func writeToFile(path string, docs []crawler.Document) error {
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	for _, d := range docs {
+		err = putDocInFile(f, d)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func putDocInFile(w io.Writer, d crawler.Document) error {
+	b, err := json.Marshal(d)
+	if err != nil {
+		return err
+	}
+	_, err = w.Write(append(b, '\n'))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func getDocsFromFile(r io.Reader) ([]crawler.Document, error) {
+	docs := []crawler.Document{}
+	scanner := bufio.NewScanner(r)
+
+	for scanner.Scan() {
+		res := crawler.Document{}
+		err := json.Unmarshal(scanner.Bytes(), &res)
+		if err != nil {
+			return nil, err
+		}
+		docs = append(docs, res)
+	}
+	return docs, scanner.Err()
+}
+
+func loadFromFile(path string) ([]crawler.Document, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	return getDocsFromFile(f)
 }
