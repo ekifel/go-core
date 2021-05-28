@@ -29,7 +29,7 @@ func main() {
 	index := index.New()
 
 	ds := "./dataStorage.json"
-	if _, err := os.Stat("/path/to/whatever"); os.IsNotExist(err) {
+	if _, err := os.Stat(ds); os.IsNotExist(err) {
 		docs = scanUrls(urls, depth, index)
 		err = writeToFile(ds, docs)
 		if err != nil {
@@ -41,7 +41,7 @@ func main() {
 			log.Fatal(err)
 		}
 		for _, doc := range docs {
-			index.Add(doc.Title, len(docs))
+			index.Add(doc.Title, doc.ID)
 		}
 	}
 
@@ -71,7 +71,8 @@ func scanUrls(urls []string, depth int, index *index.Index) []crawler.Document {
 			continue
 		}
 		for _, doc := range data {
-			index.Add(doc.Title, len(docs))
+			doc.ID = len(docs)
+			index.Add(doc.Title, doc.ID)
 			docs = append(docs, doc)
 		}
 	}
