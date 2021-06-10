@@ -26,8 +26,8 @@ func (e *Employee) Age() int {
 }
 
 func TheOldest(p ...Person) int {
-	sort.Slice(p, func(i, j int) bool { return p[i].Age() <= p[j].Age() })
-	return p[len(p)-1].Age()
+	sort.Slice(p, func(i, j int) bool { return p[i].Age() >= p[j].Age() })
+	return p[0].Age()
 }
 
 func TheOldestObject(args ...interface{}) interface{} {
