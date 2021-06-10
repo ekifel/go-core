@@ -7,9 +7,10 @@ import (
 	"go-core/gosearch_file/pkg/crawler/spider"
 	"go-core/gosearch_file/pkg/index"
 	"go-core/gosearch_file/pkg/storage"
-	"log"
 	"os"
 	"sort"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -17,16 +18,38 @@ func main() {
 	flag.Parse()
 
 	if *word == "" {
-		log.Printf("Вы не указали слово для поиска. Сделайте это используя флаг -s\n")
-		os.Exit(1)
+		fmt.Printf("Вы не указали слово для поиска. Сделайте это используя флаг -s\n")
+		return
 	}
 
+	log.SetLevel(log.WarnLevel)
+	urls := []string{"https://go.dev", "https://golang.org"}
 	index := index.New()
 	path := "./dataStorage.json"
-	docs, err := loadData(path)
-	if err != nil {
-		log.Print(err)
+	var docs []crawler.Document
+
+	if storage.CheckStorage(path) {
+		d, err := loadData(path)
+		if err != nil {
+			log.Warnf("%s\n", err)
+		}
+		docs = append(docs, d...)
 	}
+	if docs == nil {
+		d, err := scanUrls(urls)
+		if err != nil {
+			log.Fatalf("%s\n", err)
+		}
+		docs = append(docs, d...)
+
+		if len(docs) > 0 {
+			err = storage.Save(path, docs)
+			if err != nil {
+				log.Warnf("%s\n", err)
+			}
+		}
+	}
+
 	index.Create(&docs)
 	sort.Slice(docs, func(i, j int) bool { return docs[i].ID <= docs[j].ID })
 
@@ -53,41 +76,24 @@ func scanUrls(urls []string) ([]crawler.Document, error) {
 		if err != nil {
 			return nil, err
 		}
-		docs = append(docs, d...)
-	}
-
-	for _, doc := range docs {
-		doc.ID = len(docs)
+		for _, doc := range d {
+			doc.ID = len(docs)
+			docs = append(docs, doc)
+		}
 	}
 
 	return docs, nil
 }
 
 func loadData(path string) ([]crawler.Document, error) {
-	urls := []string{"https://go.dev", "https://golang.org"}
-
-	if storage.CheckStorage(path) {
-		store, err := os.Open(path)
-		if err != nil {
-			return nil, err
-		}
-		defer store.Close()
-		docs, err := storage.Load(store)
-		if err != nil {
-			return nil, err
-		}
-		return docs, nil
-	}
-
-	docs, err := scanUrls(urls)
+	store, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
-	if len(docs) > 0 {
-		err = storage.Save(path, docs)
-		if err != nil {
-			return docs, err
-		}
+	defer store.Close()
+	docs, err := storage.Load(store)
+	if err != nil {
+		return nil, err
 	}
 
 	return docs, nil
