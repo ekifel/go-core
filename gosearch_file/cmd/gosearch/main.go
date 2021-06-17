@@ -7,22 +7,20 @@ import (
 	"go-core/gosearch_file/pkg/crawler/spider"
 	"go-core/gosearch_file/pkg/index"
 	"go-core/gosearch_file/pkg/storage"
+	"log"
 	"os"
 	"sort"
-
-	log "github.com/sirupsen/logrus"
 )
 
 func main() {
-	word := flag.String("s", "", "Word for search")
+	word := flag.String("s", "", "Укажите слово для поиска")
 	flag.Parse()
 
 	if *word == "" {
-		fmt.Printf("Вы не указали слово для поиска. Сделайте это используя флаг -s\n")
+		flag.PrintDefaults()
 		return
 	}
 
-	log.SetLevel(log.WarnLevel)
 	urls := []string{"https://go.dev", "https://golang.org"}
 	index := index.New()
 	path := "./dataStorage.json"
@@ -31,9 +29,10 @@ func main() {
 	if storage.CheckStorage(path) {
 		d, err := loadData(path)
 		if err != nil {
-			log.Warnf("%s\n", err)
+			log.Printf("%s\n", err)
+		} else {
+			docs = append(docs, d...)
 		}
-		docs = append(docs, d...)
 	}
 	if docs == nil {
 		d, err := scanUrls(urls)
@@ -45,7 +44,7 @@ func main() {
 		if len(docs) > 0 {
 			err = storage.Save(path, docs)
 			if err != nil {
-				log.Warnf("%s\n", err)
+				log.Printf("%s\n", err)
 			}
 		}
 	}
